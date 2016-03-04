@@ -10,7 +10,7 @@ import collections as cl
 x_block_dim = 0
 y_block_dim = 0
 
-N=16
+N=18
 # K=2
 step_size = 0.001
 
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     # csv_file = "toy.csv"
 
 
-    conf = pyspark.SparkConf().setAppName("mf")
+    conf = pyspark.SparkConf().setAppName("mf").set("spark.memory.fraction",0.9).set("spark.memory.s0torageFraction", 0.7)
     sc = pyspark.SparkContext(conf = conf)
     csv_file = sys.argv[1]
     K = int(sys.argv[2]) #rank
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     eta_decay = 0.99
     x_block_dim, y_block_dim, blocks = blockify_data(csv_file, N)
     W, H = initialize_factor_matrices(N, K, x_block_dim, y_block_dim)
-
+    sc.setCheckpointDir(".")
     # print blocks
     blocks_broadcast = sc.broadcast(blocks)
     # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     	for strata_idx in xrange(0,N):
             temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
     	    a_strata = temp.zip(W).zip(H)
-    	    a_strata.cache()
+    	    # a_strata.cache()
     	    # print "strariaaaaaaaaa"
     	    # print W
     	    # print H
@@ -302,6 +302,15 @@ if __name__ == '__main__':
     	    # for x in updated:
     	    # 	# W[x[0]] = x[1]
     	    # 	H[x[1]] = x[2]
+            if (iterator * N + strata_idx) % 100 == 0:
+                W.cache()
+                W.checkpoint()
+                W.first()
+                W.unpersist()
+            if strata_idx == N - 2:
+                W.unpersist()
+                W.first()
+                # W.cache()
             H_collected = H.collect()
             # print len(H_collected)
             result.unpersist()
@@ -310,7 +319,7 @@ if __name__ == '__main__':
             # W.unpersist()
             H_list = cl.deque(H_collected)
             H_list.rotate(1)
-            # H.unpersist()
+            H.unpersist()
             H = sc.parallelize(list(H_list), N)
             W.cache()
             H.cache()
