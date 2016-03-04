@@ -171,9 +171,7 @@ def sgd_on_one_block(x):
     # print H_rows
     # print H_rows_offset
     # print "donee"
-    num_data_samples = 0
-    if True:
-        return (W_rows, H_rows)
+
     for data_sample in data_line:
         if data_sample == "":
             continue
@@ -188,7 +186,6 @@ def sgd_on_one_block(x):
 
         H_gradient = -2 * diff * W_rows[x_id - W_rows_offset]
         H_rows[y_id - H_rows_offset] -= step_size * H_gradient
-        num_data_samples += 1
 
     # print W_rows
     # print H_rows
@@ -288,7 +285,7 @@ if __name__ == '__main__':
     	for strata_idx in xrange(0,N):
             temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
     	    a_strata = temp.zip(W).zip(H)
-    	    # a_strata.cache()
+    	    a_strata.cache()
     	    # print "strariaaaaaaaaa"
     	    # print W
     	    # print H
@@ -324,8 +321,8 @@ if __name__ == '__main__':
             H_list.rotate(1)
             H.unpersist()
             H = sc.parallelize(list(H_list), N)
-            W.cache()
-            H.cache()
+            # W.cache()
+            # H.cache()
     	step_size *= eta_decay
 
 	    	# print x[1]
