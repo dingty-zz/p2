@@ -6,6 +6,7 @@ import time
 import numpy as np
 from pyspark import SparkContext
 import pyspark
+import pydoop.hdfs as hdfs
 import collections as cl
 x_block_dim = 0
 y_block_dim = 0
@@ -84,7 +85,7 @@ def compute_strata():
 def blockify_data(csv_file, N):
     max_x_id = 0
     max_y_id = 0
-    with open(csv_file) as fobj:
+    with hdfs.open(csv_file) as fobj:
         for line in fobj:
             tokens = line.split(",")
             max_x_id = max(max_x_id, int(tokens[0]))
