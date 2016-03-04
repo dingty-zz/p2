@@ -6,6 +6,7 @@ import time
 import numpy as np
 from pyspark import SparkContext
 import pyspark
+import hadoopy
 import collections as cl
 x_block_dim = 0
 y_block_dim = 0
@@ -152,7 +153,6 @@ def parse_factor_matrix_line(line):
 def sgd_on_one_block(x):
     # print "within a bokc"
     # print x
-
     offset_tuple = x[0][0][1]
 
     data_line_row = offset_tuple[0]
@@ -172,7 +172,8 @@ def sgd_on_one_block(x):
     # print H_rows_offset
     # print "donee"
     num_data_samples = 0
-
+    if True:
+        return (W_rows, H_rows)
     for data_sample in data_line:
         if data_sample == "":
             continue
@@ -249,7 +250,7 @@ if __name__ == '__main__':
 
 
     conf = pyspark.SparkConf().setAppName("mf").set("spark.memory.fraction",0.9) \
-    .set("spark.memory.s0torageFraction", 0.7).set("spark.yarn.executor.memoryOverhead", 1024)
+    .set("spark.memory.storageFraction", 0.7)
     sc = pyspark.SparkContext(conf = conf)
     csv_file = sys.argv[1]
     K = int(sys.argv[2]) #rank
