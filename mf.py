@@ -6,12 +6,11 @@ import time
 import numpy as np
 from pyspark import SparkContext
 import pyspark
-import pydoop.hdfs as hdfs
 import collections as cl
 x_block_dim = 0
 y_block_dim = 0
 
-N=5
+N=16
 # K=2
 step_size = 0.001
 
@@ -85,11 +84,12 @@ def compute_strata():
 def blockify_data(csv_file, N):
     max_x_id = 0
     max_y_id = 0
-    with hdfs.open(csv_file) as fobj:
-        for line in fobj:
-            tokens = line.split(",")
-            max_x_id = max(max_x_id, int(tokens[0]))
-            max_y_id = max(max_y_id, int(tokens[1]))
+    fobj = sc.textFile(csv_file).collect()
+    #with hdfs.open(csv_file) as fobj:
+    for line in fobj:
+        tokens = line.split(",")
+        max_x_id = max(max_x_id, int(tokens[0]))
+        max_y_id = max(max_y_id, int(tokens[1]))
 
     # assume the id starts from 0
     x_block_dim = int((max_x_id + N) / N)
@@ -105,15 +105,15 @@ def blockify_data(csv_file, N):
             files.append([])
         tmp_files.append(files)
 
-    with open(csv_file) as fobj:
-        for line in fobj:
-            tokens = line.split(",")
-            x_id = int(tokens[0])
-            y_id = int(tokens[1])
-            x_block_id = int(x_id / x_block_dim)
-            y_block_id = int(y_id / y_block_dim)
+    #with open(csv_file) as fobj:
+    for line in fobj:
+        tokens = line.split(",")
+        x_id = int(tokens[0])
+        y_id = int(tokens[1])
+        x_block_id = int(x_id / x_block_dim)
+        y_block_id = int(y_id / y_block_dim)
             #print (x_block_id, y_block_id, x_id, y_id)
-            tmp_files[x_block_id][y_block_id].append(line.strip())
+        tmp_files[x_block_id][y_block_id].append(line.strip())
 
     # block_fobj = open(data_block_file, 'w+')
     # for i in range(0, N):
