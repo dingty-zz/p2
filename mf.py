@@ -86,7 +86,7 @@ def blockify_data(csv_file, N):
     max_y_id = 0
     # fobj = sc.textFile(csv_file).collect()
     #with hdfs.open(csv_file) as fobj:
-    with open(csv_file) as fobj:
+    with open("hdfs://"+csv_file) as fobj:
         for line in fobj:
             tokens = line.split(",")
             max_x_id = max(max_x_id, int(tokens[0]))
@@ -106,7 +106,7 @@ def blockify_data(csv_file, N):
             files.append([])
         tmp_files.append(files)
 
-    with open(csv_file) as fobj:
+    with open("hdfs://"+csv_file) as fobj:
         for line in fobj:
             tokens = line.split(",")
             x_id = int(tokens[0])
@@ -258,7 +258,7 @@ if __name__ == '__main__':
     eta_decay = 0.99
     x_block_dim, y_block_dim, blocks = blockify_data(csv_file, N)
     W, H = initialize_factor_matrices(N, K, x_block_dim, y_block_dim)
-    sc.setCheckpointDir(".")
+    sc.setCheckpointDir("/")
     # print blocks
     blocks_broadcast = sc.broadcast(blocks)
     # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
