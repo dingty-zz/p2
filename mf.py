@@ -86,11 +86,12 @@ def blockify_data(csv_file, N):
     max_y_id = 0
     # fobj = sc.textFile(csv_file).collect()
     #with hdfs.open(csv_file) as fobj:
-    with open("hdfs://"+csv_file) as fobj:
-        for line in fobj:
-            tokens = line.split(",")
-            max_x_id = max(max_x_id, int(tokens[0]))
-            max_y_id = max(max_y_id, int(tokens[1]))
+    # with open("hdfs://"+csv_file) as fobj:\
+    for (x,line) in hadoopy.readtb(csv_file):
+        # for line in fobj:
+        tokens = line.split(",")
+        max_x_id = max(max_x_id, int(tokens[0]))
+        max_y_id = max(max_y_id, int(tokens[1]))
 
     # assume the id starts from 0
     x_block_dim = int((max_x_id + N) / N)
@@ -106,15 +107,15 @@ def blockify_data(csv_file, N):
             files.append([])
         tmp_files.append(files)
 
-    with open("hdfs://"+csv_file) as fobj:
-        for line in fobj:
-            tokens = line.split(",")
-            x_id = int(tokens[0])
-            y_id = int(tokens[1])
-            x_block_id = int(x_id / x_block_dim)
-            y_block_id = int(y_id / y_block_dim)
-                #print (x_block_id, y_block_id, x_id, y_id)
-            tmp_files[x_block_id][y_block_id].append(line.strip())
+    # with open("hdfs://"+csv_file) as fobj:
+    for (x,line) in hadoopy.readtb(csv_file):
+        tokens = line.split(",")
+        x_id = int(tokens[0])
+        y_id = int(tokens[1])
+        x_block_id = int(x_id / x_block_dim)
+        y_block_id = int(y_id / y_block_dim)
+            #print (x_block_id, y_block_id, x_id, y_id)
+        tmp_files[x_block_id][y_block_id].append(line.strip())
 
     # block_fobj = open(data_block_file, 'w+')
     # for i in range(0, N):
