@@ -248,7 +248,8 @@ if __name__ == '__main__':
     # csv_file = "toy.csv"
 
 
-    conf = pyspark.SparkConf().setAppName("mf").set("spark.memory.fraction",0.9).set("spark.memory.s0torageFraction", 0.7)
+    conf = pyspark.SparkConf().setAppName("mf").set("spark.memory.fraction",0.9) \
+    .set("spark.memory.s0torageFraction", 0.7).set("spark.yarn.executor.memoryOverhead", 1024)
     sc = pyspark.SparkContext(conf = conf)
     csv_file = sys.argv[1]
     K = int(sys.argv[2]) #rank
