@@ -65,7 +65,7 @@ def initialize_factor_matrices(N, K, x_block_dim, y_block_dim):
             line += row +";"
         H.append(parse_factor_matrix_line(line))
     # print W
-    # return W, H
+    return W, H
     # return map(lambda x : parse_factor_matrix_line(x), W), map(lambda x : parse_factor_matrix_line(H))
 
 def compute_strata():
@@ -241,12 +241,14 @@ def create_tuple(line):
 	# parse the original data line, which is (row_id, column_id, value)
 	return (int(tokens[0]), int(tokens[1])), float(tokens[2])
 if __name__ == '__main__':
-    conf = pyspark.SparkConf().setAppName("mf")
-    sc = pyspark.SparkContext(conf = conf)
+
     # load RDD from hdfs
 
     # csv_file = "toy.csv"
 
+
+    conf = pyspark.SparkConf().setAppName("mf")
+    sc = pyspark.SparkContext(conf = conf)
     csv_file = sys.argv[1]
     K = int(sys.argv[2]) #rank
     w_location = sys.argv[3]
@@ -302,8 +304,10 @@ if __name__ == '__main__':
     	    # 	H[x[1]] = x[2]
             H_collected = H.collect()
             # print len(H_collected)
-            # result.unpersist()
-
+            result.unpersist()
+            a_strata.unpersist()
+            # H.unpersist()
+            # W.unpersist()
             H_list = cl.deque(H_collected)
             H_list.rotate(1)
             # H.unpersist()
