@@ -65,7 +65,7 @@ def initialize_factor_matrices(N, K, x_block_dim, y_block_dim):
             line += row +";"
         H.append(parse_factor_matrix_line(line))
     # print W
-    return W, H
+    # return W, H
     # return map(lambda x : parse_factor_matrix_line(x), W), map(lambda x : parse_factor_matrix_line(H))
 
 def compute_strata():
@@ -84,12 +84,13 @@ def compute_strata():
 def blockify_data(csv_file, N):
     max_x_id = 0
     max_y_id = 0
-    fobj = sc.textFile(csv_file).collect()
+    # fobj = sc.textFile(csv_file).collect()
     #with hdfs.open(csv_file) as fobj:
-    for line in fobj:
-        tokens = line.split(",")
-        max_x_id = max(max_x_id, int(tokens[0]))
-        max_y_id = max(max_y_id, int(tokens[1]))
+    with open(csv_file) as fobj:
+        for line in fobj:
+            tokens = line.split(",")
+            max_x_id = max(max_x_id, int(tokens[0]))
+            max_y_id = max(max_y_id, int(tokens[1]))
 
     # assume the id starts from 0
     x_block_dim = int((max_x_id + N) / N)
@@ -105,15 +106,15 @@ def blockify_data(csv_file, N):
             files.append([])
         tmp_files.append(files)
 
-    #with open(csv_file) as fobj:
-    for line in fobj:
-        tokens = line.split(",")
-        x_id = int(tokens[0])
-        y_id = int(tokens[1])
-        x_block_id = int(x_id / x_block_dim)
-        y_block_id = int(y_id / y_block_dim)
-            #print (x_block_id, y_block_id, x_id, y_id)
-        tmp_files[x_block_id][y_block_id].append(line.strip())
+    with open(csv_file) as fobj:
+        for line in fobj:
+            tokens = line.split(",")
+            x_id = int(tokens[0])
+            y_id = int(tokens[1])
+            x_block_id = int(x_id / x_block_dim)
+            y_block_id = int(y_id / y_block_dim)
+                #print (x_block_id, y_block_id, x_id, y_id)
+            tmp_files[x_block_id][y_block_id].append(line.strip())
 
     # block_fobj = open(data_block_file, 'w+')
     # for i in range(0, N):
@@ -127,6 +128,7 @@ def blockify_data(csv_file, N):
     # block_fobj.close()
     # print tmp_files
     result = reduce(lambda x, y:x+y, tmp_files)
+    # print result
     return x_block_dim, y_block_dim, result
 
 # one line is a partition of the factor matrix
@@ -147,54 +149,64 @@ def parse_factor_matrix_line(line):
     return rows
 
 def sgd_on_one_block(x):
+    # print "within a bokc"
+    # print x
 
-	data_line = x[0][0][1][0]
-	offset_tuple = x[0][0][1][1]
-	W_idx = offset_tuple[0]
-	H_idx = offset_tuple[2]
-	W_rows = x[0][1]
-	W_rows_offset=offset_tuple[1]
-	H_rows = x[1]
-	H_rows_offset=offset_tuple[3]
-	# print "see what's going on"
-	# print data_line
-	# print
-	# print W_rows
-	# print W_rows_offset
-	# print offset_tuple[2]
-	# print H_rows
-	# print H_rows_offset
-	# print "donee"
-	num_data_samples = 0
+    offset_tuple = x[0][0][1]
 
-	for data_sample in data_line:
-	    if data_sample == "":
-	        continue
-	    tokens = data_sample.split(",")
-	    x_id = int(tokens[0])
-	    y_id = int(tokens[1])
-	    rating = float(tokens[2])
+    data_line_row = offset_tuple[0]
+    data_line_col = offset_tuple[2]
+    W_rows = x[0][1]
+    W_rows_offset=offset_tuple[1]
+    H_rows = x[1]
+    H_rows_offset=offset_tuple[3]
+    data_line = blocks_broadcast.value[data_line_row * N + data_line_col]
+    # print "see what's going on"
+    # print data_line
+    # print
+    # print W_rows
+    # print W_rows_offset
+    # print offset_tuple[2]
+    # print H_rows
+    # print H_rows_offset
+    # print "donee"
+    num_data_samples = 0
 
-	    diff = rating - np.dot(W_rows[x_id - W_rows_offset], H_rows[y_id - H_rows_offset])
-	    W_gradient = -2 * diff * H_rows[y_id - H_rows_offset]
-	    W_rows[x_id - W_rows_offset] -= step_size * W_gradient
+    for data_sample in data_line:
+        if data_sample == "":
+            continue
+        tokens = data_sample.split(",")
+        x_id = int(tokens[0])
+        y_id = int(tokens[1])
+        rating = float(tokens[2])
 
-	    H_gradient = -2 * diff * W_rows[x_id - W_rows_offset]
-	    H_rows[y_id - H_rows_offset] -= step_size * H_gradient
-	    num_data_samples += 1
+        diff = rating - np.dot(W_rows[x_id - W_rows_offset], H_rows[y_id - H_rows_offset])
+        W_gradient = -2 * diff * H_rows[y_id - H_rows_offset]
+        W_rows[x_id - W_rows_offset] -= step_size * W_gradient
 
-	# print W_rows
-	# print H_rows
-	# print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+        H_gradient = -2 * diff * W_rows[x_id - W_rows_offset]
+        H_rows[y_id - H_rows_offset] -= step_size * H_gradient
+        num_data_samples += 1
 
-	return (W_rows, H_rows)
+    # print W_rows
+    # print H_rows
+    # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+
+    return (W_rows, H_rows)
 
 def factor_matrix_rows_to_string(rows):
+    # print "oi"
+    row_len = len(rows)
+    # print row_len
+    idx=0
     line = ""
     for row in rows:
+        idx += 1
         for num in np.nditer(row):
             line += str(num) + ","
-        line += "\n"
+        if idx != row_len:
+            line += "\n"
+    # print line
     return line
 
 # perform evaluation of the model one block at a time
@@ -246,6 +258,7 @@ if __name__ == '__main__':
     W, H = initialize_factor_matrices(N, K, x_block_dim, y_block_dim)
 
     # print blocks
+    blocks_broadcast = sc.broadcast(blocks)
     # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
     # print W
     # print H
@@ -264,33 +277,36 @@ if __name__ == '__main__':
     strata = compute_strata()
     # print strata
     # strata[0]=1
-    datas = zip(strata,zip(blocks, tuples))
+    datas = zip(strata, tuples)
+    # print datas
     for iterator in range(0, num_iterations):
     	for strata_idx in xrange(0,N):
-    	    a_strata = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N).zip(W).zip(H)
+            temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
+    	    a_strata = temp.zip(W).zip(H)
     	    a_strata.cache()
     	    # print "strariaaaaaaaaa"
     	    # print W
     	    # print H
     	    # H_broadcast = sc.broadcast(H)
             result = a_strata.map(lambda x : sgd_on_one_block(x))
-            a_strata.unpersist()
+            # a_strata.unpersist()
             # W.unpersist()
             # H.unpersist()
             W = result.map(lambda x : x[0])
             H = result.map(lambda x : x[1])
+            # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+
     	    # updated = H.collect()
     	    # for x in updated:
     	    # 	# W[x[0]] = x[1]
     	    # 	H[x[1]] = x[2]
             H_collected = H.collect()
-            # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
             # print len(H_collected)
-            result.unpersist()
+            # result.unpersist()
 
             H_list = cl.deque(H_collected)
             H_list.rotate(1)
-            H.unpersist()
+            # H.unpersist()
             H = sc.parallelize(list(H_list), N)
             W.cache()
             H.cache()
@@ -305,9 +321,8 @@ if __name__ == '__main__':
 # print H.collect()
 # print "final w is"
 
-Wresult = W.map(lambda x : factor_matrix_rows_to_string(x))
-Hresult = H.map(lambda x : factor_matrix_rows_to_string(x))
-
+Wresult = W.coalesce(1).map(lambda x : factor_matrix_rows_to_string(x))
+Hresult = H.coalesce(1).map(lambda x : factor_matrix_rows_to_string(x))
 Wresult.saveAsTextFile(w_location)
 Hresult.saveAsTextFile(h_location)
 
