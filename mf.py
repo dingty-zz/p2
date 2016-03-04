@@ -193,7 +193,7 @@ def factor_matrix_rows_to_string(rows):
     for row in rows:
         for num in np.nditer(row):
             line += str(num) + ","
-        line += ";"
+        line += "\n"
     return line
 
 # perform evaluation of the model one block at a time
@@ -275,7 +275,7 @@ if __name__ == '__main__':
             result = a_strata.map(lambda x : sgd_on_one_block(x))
             a_strata.unpersist()
             # W.unpersist()
-            H.unpersist()
+            # H.unpersist()
             W = result.map(lambda x : x[0])
             H = result.map(lambda x : x[1])
     	    # updated = H.collect()
