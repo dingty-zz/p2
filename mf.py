@@ -11,7 +11,7 @@ import collections as cl
 x_block_dim = 0
 y_block_dim = 0
 
-N=2
+N=20
 # K=2
 step_size = 0.001
 
@@ -251,9 +251,9 @@ if __name__ == '__main__':
     # print strata
     # strata[0]=1
     datas = zip(strata, tuples)
-    H_index = range(0,N)
     # print datas
     for iterator in range(0, num_iterations):
+        H_index = range(0,N)
     	for strata_idx in xrange(0,N):
             temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
     	    a_strata = temp.zip(W).zip(H)
@@ -272,12 +272,12 @@ if __name__ == '__main__':
             H_index_queue = cl.deque(H_index)
             H_index_queue.rotate(1)
             H_index = list(H_index_queue)
-            H_index_rdd = sc.parallelize(H_index_rdd, N)
-
+            H_index_rdd = sc.parallelize(H_index, N)
+            #print H_index
             H_zipped = H_index_rdd.zip(H)
             H_zipped = H_zipped.repartitionAndSortWithinPartitions(N, lambda x : x % N, N)
+            #print H_zipped.collect()
             H = H_zipped.map(lambda x : x[1])
-
             if (iterator * N + strata_idx) % 100 == 0:
                 W.cache()
                 H.cache()
