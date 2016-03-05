@@ -278,7 +278,7 @@ if __name__ == '__main__':
             H_zipped = H_zipped.repartitionAndSortWithinPartitions(N, lambda x : x % N, N)
             #print H_zipped.collect()
             H = H_zipped.map(lambda x : x[1])
-            if (iterator * N + strata_idx) % 100 == 0:
+            if strata_idx == 0:
                 W.cache()
                 H.cache()
                 W.checkpoint()
