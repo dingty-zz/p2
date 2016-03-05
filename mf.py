@@ -254,7 +254,16 @@ if __name__ == '__main__':
     # print datas
     for iterator in range(0, num_iterations):
         H_index = range(0,N)
+        print "###################################################################"
+        print "iterator"
+        print iterator
+        print "###################################################################"
     	for strata_idx in xrange(0,N):
+            print "###################################################################"
+            print "strata_idx"
+            print strata_idx
+            print "###################################################################"
+
             temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
     	    a_strata = temp.zip(W).zip(H)
     	    a_strata.cache()
