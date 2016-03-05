@@ -153,7 +153,7 @@ def parse_factor_matrix_line(line):
 def sgd_on_one_block(x):
     # print "within a bokc"
     # print x
-    offset_tuple = x[0][0][1]
+    offset_tuple = x[0][0][1][1]
 
     data_line_row = offset_tuple[0]
     data_line_col = offset_tuple[2]
@@ -161,7 +161,7 @@ def sgd_on_one_block(x):
     W_rows_offset=offset_tuple[1]
     H_rows = x[1]
     H_rows_offset=offset_tuple[3]
-    data_line = blocks_broadcast.value[data_line_row * N + data_line_col]
+    data_line = x[0][0][1][0]
     # print "see what's going on"
     # print data_line
     # print
@@ -232,7 +232,7 @@ if __name__ == '__main__':
     W, H = initialize_factor_matrices(N, K, x_block_dim, y_block_dim)
     sc.setCheckpointDir("/")
     # print blocks
-    blocks_broadcast = sc.broadcast(blocks)
+    # blocks_broadcast = sc.broadcast(blocks)
     # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
     # print W
     # print H
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     strata = compute_strata()
     # print strata
     # strata[0]=1
-    datas = zip(strata, tuples)
+    datas = zip(strata, zip(blocks, tuples))
     # print datas
     for iterator in range(0, num_iterations):
         H_index = range(0,N)
