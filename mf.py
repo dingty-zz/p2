@@ -11,7 +11,7 @@ import collections as cl
 x_block_dim = 0
 y_block_dim = 0
 
-N=18
+N=2
 # K=2
 step_size = 0.001
 
@@ -208,33 +208,6 @@ def factor_matrix_rows_to_string(rows):
     # print line
     return line
 
-# perform evaluation of the model one block at a time
-def evaluate_block_by_block(N, x_block_dim, y_block_dim):
-    block_fobj = open(data_block_file, 'r')
-    W_fobj = open(W_filename, 'r')
-    error_total = .0
-    n_total = 0
-
-    # iterate over rows
-    for i in range(0, N):
-        W_line = W_fobj.readline()
-        W_rows = parse_factor_matrix_line(W_line)
-        W_rows_offset = i * x_block_dim
-        H_fobj = open(H_filename, 'r')
-
-        # iterate over blocks on the same row
-        for j in range(0, N):
-            data_line = block_fobj.readline()
-            H_line = H_fobj.readline()
-            H_rows = parse_factor_matrix_line(H_line)
-            H_rows_offset = j * y_block_dim
-
-            err, n = evaluate_on_one_block(data_line, W_rows, W_rows_offset,
-                                        H_rows, H_rows_offset)
-            error_total += err
-            n_total += n
-    return error_total, n_total
-
 def create_tuple(line):
 	tokens = line.split(",")
 	# parse the original data line, which is (row_id, column_id, value)
@@ -244,7 +217,6 @@ if __name__ == '__main__':
     # load RDD from hdfs
 
     # csv_file = "toy.csv"
-
 
     conf = pyspark.SparkConf().setAppName("mf").set("spark.memory.fraction",0.9) \
     .set("spark.memory.storageFraction", 0.7)
@@ -273,13 +245,13 @@ if __name__ == '__main__':
             H_rows_offset = j * y_block_dim
             tuples.append((i,W_rows_offset, j , H_rows_offset))
 
-
     # print tuples
 
     strata = compute_strata()
     # print strata
     # strata[0]=1
     datas = zip(strata, tuples)
+    H_index = range(0,N)
     # print datas
     for iterator in range(0, num_iterations):
     	for strata_idx in xrange(0,N):
@@ -296,33 +268,41 @@ if __name__ == '__main__':
             # H.unpersist()
             W = result.map(lambda x : x[0])
             H = result.map(lambda x : x[1])
-            # print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
+            # rotate the H index
+            H_index_queue = cl.deque(H_index)
+            H_index_queue.rotate(1)
+            H_index = list(H_index_queue)
+            H_index_rdd = sc.parallelize(H_index_rdd, N)
 
-    	    # updated = H.collect()
-    	    # for x in updated:
-    	    # 	# W[x[0]] = x[1]
-    	    # 	H[x[1]] = x[2]
+            H_zipped = H_index_rdd.zip(H)
+            H_zipped = H_zipped.repartitionAndSortWithinPartitions(N, lambda x : x % N, N)
+            H = H_zipped.map(lambda x : x[1])
+
             if (iterator * N + strata_idx) % 100 == 0:
                 W.cache()
+                H.cache()
                 W.checkpoint()
+                H.checkpoint()
                 W.first()
+                H.first()
                 W.unpersist()
-            if strata_idx == N - 2:
-                W.unpersist()
-                W.first()
+                H.unpersist()
+            # if strata_idx == N - 2:
+            #     W.unpersist()
+            #     W.first()
                 # W.cache()
-            H_collected = H.collect()
+            # H_collected = H.collect()
             # print len(H_collected)
             result.unpersist()
             a_strata.unpersist()
             # H.unpersist()
             # W.unpersist()
-            H_list = cl.deque(H_collected)
-            H_list.rotate(1)
-            H.unpersist()
-            H = sc.parallelize(list(H_list), N)
-            # W.cache()
-            # H.cache()
+            # H_list = cl.deque(H_collected)
+            # H_list.rotate(1)
+            # H.unpersist()
+            # H = sc.parallelize(list(H_list), N)
+            W.cache()
+            H.cache()
     	step_size *= eta_decay
 
 	    	# print x[1]
