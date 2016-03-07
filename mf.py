@@ -194,18 +194,13 @@ def sgd_on_one_block(x):
     return (W_rows, H_rows)
 
 def factor_matrix_rows_to_string(rows):
-    # print "oi"
-    row_len = len(rows)
-    # print row_len
-    idx=0
     line = ""
     for row in rows:
-        idx += 1
         for num in np.nditer(row):
             line += str(num) + ","
-        if idx != row_len:
-            line += "\n"
-    # print line
+        line=line[:-1]
+        line += "\n"
+    line = line[:-1]
     return line
 
 def create_tuple(line):
@@ -254,15 +249,15 @@ if __name__ == '__main__':
     # print datas
     for iterator in range(0, num_iterations):
         H_index = range(0,N)
-        print "###################################################################"
-        print "iterator"
-        print iterator
-        print "###################################################################"
+        # print "###################################################################"
+        # print "iterator"
+        # print iterator
+        # print "###################################################################"
     	for strata_idx in xrange(0,N):
-            print "###################################################################"
-            print "strata_idx"
-            print strata_idx
-            print "###################################################################"
+            # print "###################################################################"
+            # print "strata_idx"
+            # print strata_idx
+            # print "###################################################################"
 
             temp = sc.parallelize(filter(lambda x : x[0]==strata_idx, datas),N)
     	    a_strata = temp.zip(W).zip(H)
